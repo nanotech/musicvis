@@ -1,13 +1,31 @@
 import javax.media.opengl.*;
 import processing.opengl.*;
 import processing.video.*;
+import promidi.*;
+
+//
+// CONFIG
+//
+
+final static boolean PULSE_FILE = "pulses.musicvis.txt"
+final static boolean MOVIE_FILE = "musicvis.avi"
+final static boolean READ = false; // read saved pulses
+final static boolean WRITE = false; // save pulses
+final static boolean RECORD = false; // video
+
+// Run the app once to get a list of available devices on the console.
+final static boolean MIDI_DEVICE = 0;
+
+//
+// END CONFIG
+//
 
 float wCenter;
 float hCenter;
+int frame = 0;
 
 MovieMaker mm;
-final static boolean RECORD = false;
-
+MidiIO midiIO;
 Pulser pulser;
 
 void setup() {
@@ -20,15 +38,24 @@ void setup() {
   wCenter = (width/2);
   hCenter = (height/2);
 
-  pulser = new Pulser();
+  if (WRITE || !READ) {
+    pulser = new Pulser();
+  } else {
+    int[] timeline = stringArrayToIntArray(loadStrings(PULSE_FILE));
+    pulser = new Pulser(timeline);
+  }
   
   // Create MovieMaker object with size, filename,
   // compression codec and quality, framerate
   if (RECORD) {
-    mm = new MovieMaker(this, width, height, "drawing.avi",
+    mm = new MovieMaker(this, width, height, MOVIE_FILE,
         30, MovieMaker.MOTION_JPEG_A, MovieMaker.BEST);
   }
-  
+
+  midiIO = MidiIO.getInstance(this);
+  midiIO.printDevices();
+  midiIO.openInput(MIDI_DEVICE,0);
+
   noStroke();
 }
 
@@ -36,152 +63,11 @@ void draw() {
   background(0);
   setup_gl();
 
-  translate(width/2, height/2);
+  translate(wCenter, hCenter);
   pulser.run();
 
   if (RECORD) mm.addFrame(); // Add window's pixels to movie
-}
-
-class Pulser {
-  
-  PImage[] images = new PImage[2];
-  int lastPulseTime = millis();
-  int maxPulses = 2000;
-  Pulse[] pulses = new Pulse[maxPulses];
-  int[] slots = new int[0];
-
-  public Pulser() {
-    images[0] = loadImage("star.png");
-    images[1] = loadImage("flare.png");
-
-    for (int i=maxPulses-1;i>=0;i--) {
-      slots = append(slots, i);
-    }
-
-    for (int i=0;i<slots.length;i++) {
-      new Pulse().alive = false;
-    }
-  }
-
-  public void run() {
-    // Add pulses
-    if (millis() - lastPulseTime > 20) {
-      for (int i=0;i<3;i++) {
-        add(new Pulse(this));
-      }
-      lastPulseTime = millis();
-    }
-
-    // Draw pulses
-    for (int i=0;i<pulses.length;i++) {
-      if (pulses[i] != null) {
-        pulses[i].draw();
-      }
-    }
-  }
-
-  public Pulse add(Pulse pulse) {
-    if (slots.length > 0) {
-      pulse.id = slots[slots.length-1];
-      pulses[pulse.id] = pulse;
-      slots = shorten(slots);
-    }
-
-    return pulse;
-  }
-
-}
-
-class Pulse {
-
-  int id;
-  float x;
-  float y;
-  float size;
-  int[] colors = new int[3];
-  int imageId;
-  int age = 0;
-  int peak = 10; // in frames
-  float zoomIncrement = 1.0; // how much to zoom per frame, in pixels
-  boolean alive = true;
-  Pulser pulser;
-
-  public Pulse() {
-    reset();
-  }
-
-  public Pulse(Pulser _pulser) {
-    pulser = _pulser;
-    reset();
-  }
-
-  public void reset() {
-    x = random(-wCenter, wCenter);
-    y = random(-hCenter, hCenter);
-    size = random(120,190);
-    
-    imageId = random(15) < 1 ? 0 : 1;
-  }
-
-  public void draw() {
-    if (alive == true) {
-      int timeTint = round(sin((float) millis() / 1500) * 3) - 32;
-      tint(colors[0], colors[1] + timeTint, colors[2] + timeTint);
-      age();
-      zoom();
-      image(pulser.images[imageId], x, y, size, size);
-    }
-  }
-  
-  void age() {
-    if (age++ < peak) {
-      fadeIn();
-    } else {
-      fadeOut();
-    }
-  }
-
-  void zoom() {
-    float oldDistance = sqrt(sq(x) + sq(y));
-
-    // Zoomed Width/Height Center
-    float zwc = wCenter + zoomIncrement;
-    float zhc = hCenter + zoomIncrement;
-
-    // Apply movement zoom.
-    x = map(x, -wCenter, wCenter, -zwc, zwc);
-    y = map(y, -hCenter, hCenter, -zhc, zhc);
-
-    float newDistance = sqrt(sq(x) + sq(y));
-
-    // Apply size zoom.
-    size *= (newDistance-oldDistance)/200 + 1;
-  }
-  
-  void fadeOut() {
-    boolean colored = false;
-
-    for (int i=0;i<colors.length;i++) {
-      if (colors[i] > 0) {
-        colors[i] -= 1;
-        colored = true;
-      }
-    }
-
-    if (!colored) die();
-  }
- 
-  void fadeIn() {
-    for (int i=0;i<colors.length;i++) {
-      colors[i] += int(random(18));
-    }
-  }
-
-  void die() {
-    alive = false;
-    pulser.slots = append(pulser.slots, id);
-  }
-
+  frame++;
 }
 
 void setup_gl() {
@@ -206,11 +92,71 @@ void setup_gl() {
   pgl.endGL();
 }
 
-void keyPressed() {
-  if (RECORD && key == ' ') {
-    // Finish the movie if space bar is pressed
+void stop() {
+  if (RECORD) {
     mm.finish();
-    // Quit running the sketch once the file is written
-    exit();
   }
+
+  // Convert pulse history to String[] from int[]
+  String[] historyStrings = intArrayToStringArray(pulser.pulseHistory);
+
+  if (WRITE) {
+    saveStrings(PULSE_FILE, historyStrings);
+    println(pulser.pulseHistory);
+  }
+  super.stop();
+}
+
+void noteOn(
+  Note note,
+  int deviceNumber,
+  int midiChannel
+){
+  if (note.getCommand() != 144) return;
+  int vel = note.getVelocity();
+  int pit = note.getPitch();
+
+  pulser.pulse(note.getVelocity());
+}
+
+void noteOff(
+  Note note,
+  int deviceNumber,
+  int midiChannel
+){
+  if (note.getCommand() != 128) return;
+  int pit = note.getPitch();
+}
+
+void programChange(
+  ProgramChange programChange,
+  int deviceNumber,
+  int midiChannel
+){
+  int num = programChange.getNumber();
+  println(programChange);
+}
+
+//
+// Helpers
+//
+
+String[] intArrayToStringArray(int[] ints) {
+  String[] strings = new String[ints.length];
+
+  for (int i=ints.length-1;i>=0;i--) {
+    strings[i] = str(ints[i]);
+  }
+
+  return strings;
+}
+
+int[] stringArrayToIntArray(String[] strings) {
+  int[] ints = new int[strings.length];
+
+  for (int i=strings.length-1;i>=0;i--) {
+    ints[i] = int(strings[i]);
+  }
+
+  return ints;
 }

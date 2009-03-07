@@ -1,0 +1,8 @@
+.DS_Store
+Thumbs.db
+*.swp
+/applet
+/application.*
+/*.avi
+/*.mp4
+/*.musicvis.txt
