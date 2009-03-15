@@ -7,14 +7,14 @@ import promidi.*;
 // CONFIG
 //
 
-final static boolean PULSE_FILE = "pulses.musicvis.txt"
-final static boolean MOVIE_FILE = "musicvis.avi"
+final static String PULSE_FILE = "pulses.musicvis.txt";
+final static String MOVIE_FILE = "musicvis.avi";
 final static boolean READ = false; // read saved pulses
 final static boolean WRITE = false; // save pulses
 final static boolean RECORD = false; // video
 
 // Run the app once to get a list of available devices on the console.
-final static boolean MIDI_DEVICE = 0;
+final static int MIDI_DEVICE = 0;
 
 //
 // END CONFIG
