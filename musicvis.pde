@@ -3,22 +3,28 @@ import processing.opengl.*;
 import processing.video.*;
 import promidi.*;
 
-//
-// CONFIG
-//
+////////////
+// CONFIG //
+////////////
 
 final static String PULSE_FILE = "pulses.musicvis.txt";
 final static String MOVIE_FILE = "musicvis.avi";
 final static boolean READ = false; // read saved pulses
-final static boolean WRITE = false; // save pulses
-final static boolean RECORD = false; // video
+final static boolean WRITE = false; // save pulses to a file
+
+// Create a video; you must have a previously recorded PULSE_FILE.
+final static boolean RECORD = false;
 
 // Run the app once to get a list of available devices on the console.
-final static int MIDI_DEVICE = 0;
+int MIDI_DEVICE = 0;
 
-//
-// END CONFIG
-//
+// Screen size
+final static int WIDTH  = 1280;
+final static int HEIGHT = 720;
+
+////////////////
+// END CONFIG //
+////////////////
 
 float wCenter;
 float hCenter;
@@ -29,22 +35,24 @@ MidiIO midiIO;
 Pulser pulser;
 
 void setup() {
-  size(1280, 720, OPENGL);
+  size(WIDTH, HEIGHT, OPENGL);
   hint(ENABLE_OPENGL_4X_SMOOTH);
   frameRate(30);
-  background(0);
-  imageMode(CENTER);
+  background(0); // black
+  imageMode(CENTER); // image origin is it's center
 
   wCenter = (width/2);
   hCenter = (height/2);
 
   if (WRITE || !READ) {
+    println("Creating new pulse sequence.");
     pulser = new Pulser();
   } else {
+    println("Loading pulse sequence \""+PULSE_FILE+"\".");
     int[] timeline = stringArrayToIntArray(loadStrings(PULSE_FILE));
     pulser = new Pulser(timeline);
   }
-  
+
   // Create MovieMaker object with size, filename,
   // compression codec and quality, framerate
   if (RECORD) {
@@ -53,7 +61,7 @@ void setup() {
   }
 
   midiIO = MidiIO.getInstance(this);
-  midiIO.printDevices();
+  midiIO.printInputDevices();
   midiIO.openInput(MIDI_DEVICE,0);
 
   noStroke();
@@ -70,6 +78,7 @@ void draw() {
   frame++;
 }
 
+// Fancy OpenGL effects.
 void setup_gl() {
   PGraphicsOpenGL pgl = (PGraphicsOpenGL) g;  // g may change
   GL gl = pgl.beginGL();  // always use the GL object returned by beginGL
@@ -92,6 +101,7 @@ void setup_gl() {
   pgl.endGL();
 }
 
+// Clean up.
 void stop() {
   if (RECORD) {
     mm.finish();
@@ -119,7 +129,7 @@ void noteOn(
   pulser.pulse(note.getVelocity());
 }
 
-void noteOff(
+void noteOff( // not implemented
   Note note,
   int deviceNumber,
   int midiChannel
@@ -128,7 +138,7 @@ void noteOff(
   int pit = note.getPitch();
 }
 
-void programChange(
+void programChange( // not implemented
   ProgramChange programChange,
   int deviceNumber,
   int midiChannel
