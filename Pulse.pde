@@ -1,31 +1,20 @@
-final class Pulse {
+final class Pulse extends Pulseable {
 
-  public int id;
-  public float x;
-  public float y;
   public float size;
-  public boolean alive = true;
   public int age = 0;
 
   private int[] colors = new int[3];
-  private int velocity;
   private int imageId;
   private int peak = 8; // in frames
   private float zoomIncrement = 1.0; // how much to zoom per frame, in pixels
-  private final Pulser pulser;
 
-  public Pulse(Pulser _pulser, int _velocity) {
-    pulser = _pulser;
-    velocity = _velocity;
-    reset();
+  public Pulse(Pulser pulser, int velocity) {
+    super(pulser, velocity);
   }
 
   public void reset() {
-    int padding = 100;
-    x = random(-wCenter+padding, wCenter-padding);
-    y = random(-hCenter+padding, hCenter-padding);
+    super.reset();
     size = random(120,190);
-    
     imageId = random(8) < 1 ? 0 : 1;
   }
 
@@ -38,7 +27,7 @@ final class Pulse {
       image(pulser.images[imageId], x, y, size, size);
     }
   }
-  
+
   private void age() {
     if (age++ < peak) {
       fadeIn();
@@ -63,7 +52,7 @@ final class Pulse {
     // Apply size zoom.
     size *= (newDistance-oldDistance)/200 + 1;
   }
-  
+
   private void fadeOut() {
     boolean colored = false;
 
@@ -76,18 +65,13 @@ final class Pulse {
 
     if (!colored) die();
   }
- 
+
   private void fadeIn() {
     for (int i=0;i<colors.length;i++) {
       //int m = (i == favorHue) ? 5 : 0;
       int m = 6;
       colors[i] += (int) random(m, 34);
     }
-  }
-
-  private void die() {
-    alive = false;
-    pulser.slots = append(pulser.slots, id);
   }
 
 }

@@ -1,5 +1,5 @@
 final class Pulser {
-  
+
   public PImage[] images = new PImage[2];
   private int[] timeline = new int[0];
   public int timelinePos = 0;
@@ -8,7 +8,7 @@ final class Pulser {
   public int[] pulseHistory = new int[0];
 
   private int lastPulseTime = millis();
-  private Pulse[] pulses = new Pulse[2000];
+  private Pulseable[] pulses = new Pulseable[2000];
   private int[] slots = new int[0];
 
   public Pulser(int[] _timeline) {
@@ -54,7 +54,7 @@ final class Pulser {
         pulses[i].draw();
       }
     }
-    
+
     /*
     PGraphicsOpenGL pgl = (PGraphicsOpenGL) g;  // g may change
     GL gl = pgl.beginGL();  // always use the GL object returned by beginGL
@@ -68,19 +68,21 @@ final class Pulser {
     */
   }
 
-  public Pulse add(Pulse pulse) {
+  public void add(Pulseable pulse) {
     if (slots.length > 0) {
       pulse.id = slots[slots.length-1];
       pulses[pulse.id] = pulse;
       pulseHistory = append(pulseHistory, FRAME);
       slots = shorten(slots);
     }
-
-    return pulse;
   }
 
-  public Pulse pulse(int x) {
-    return add(new Pulse(this, x));
+  public void pulse(int x) {
+    /*
+    if (random(5) < 2)
+      add(new Trazo(this, x));
+    else*/
+      add(new Pulse(this, x));
   }
 
   private boolean allDead() {
