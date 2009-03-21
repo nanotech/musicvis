@@ -1,0 +1,101 @@
+body {
+  margin:0; padding:0;
+  font-family:"helvetica"; 
+  background:#111;
+  color:#ddf;
+}
+
+h1, h2, h3, p {
+  text-shadow:0 0 2px black;
+}
+p { text-align:justify; }
+
+.padded, #downloads {
+  margin:0 auto;
+  width:680px;
+}
+
+#header {
+  color:white;
+  background:black url(images/background.png) center -180px no-repeat;
+  padding:1em;
+  text-shadow:0 0 10px black;
+  height:230px;
+}
+
+#header a { color:white; }
+#content {
+  background:#0e2964;
+  padding:1em 0;
+  border-width:1px;
+  border-color:#223f7a;
+  border-style:solid none;
+}
+
+h1 {
+  font-size:3.8em;
+  margin:0;
+  padding:1.08em 0 0;
+}
+h1 .small { font-size:0.4em; font-weight:normal; }
+h1 a { text-decoration:none }
+h2 {
+  margin:1em 0 0;
+  font-size:1.8em;
+  color:white;
+}
+h3 { text-align:center; }
+
+a {
+  color:white;
+  font-weight:bold;
+  text-decoration:none;
+}
+a:hover { text-shadow:0 0 8px black; }
+
+.description {
+  font-size:1.2em;
+  margin:0.2em 0.3em;
+}
+
+pre {
+  background:#eee;
+  border:1px solid #777;
+  color:#000;
+  padding:10px;
+  font-size:14px;
+}
+
+hr {
+  border:0;
+  width:80%;
+  border-bottom:1px solid #aaa
+}
+
+.footer {
+  text-align:center;
+  padding-top:30px;
+  font-style:italic;
+}
+
+img { border:0; }
+.icons { text-align:center; }
+.icons img { padding:6px 8px; }
+
+#downloads {
+  color:#ccc;
+  padding:1em 0;
+}
+
+#black {
+  margin:0;
+  height:30px;
+  width:100%;
+  background:black;
+  position:absolute;
+  left:0;
+  top:232px;
+  opacity:0.5;
+}
+.note { font-style:italic; font-size:0.88em; }
+
