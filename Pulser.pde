@@ -32,7 +32,7 @@ final class Pulser {
     // Check for the end.
 
     /*
-    if (frame - lastBeat >= beat) {
+    if (FRAME - lastBeat >= beat) {
       lastBeat += beat;
     }
     */
@@ -41,9 +41,9 @@ final class Pulser {
       if (timelinePos == timeline.length && allDead() == true) exit();
 
       // Add pulses
-      while (timelinePos < timeline.length && frame >= timeline[timelinePos]) {
+      while (timelinePos < timeline.length && FRAME >= timeline[timelinePos]) {
         pulse(0);
-        lastPulseTime = frame;
+        lastPulseTime = FRAME;
         timelinePos++;
       }
     }
@@ -60,7 +60,7 @@ final class Pulser {
     GL gl = pgl.beginGL();  // always use the GL object returned by beginGL
     gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
 
-    fill(0, map(frame-lastBeat, 0, beat, 0, 60));
+    fill(0, map(FRAME-lastBeat, 0, beat, 0, 60));
     rect(-wCenter*2, -hCenter*2, wCenter*4, hCenter*4);
 
     gl.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE);
@@ -72,7 +72,7 @@ final class Pulser {
     if (slots.length > 0) {
       pulse.id = slots[slots.length-1];
       pulses[pulse.id] = pulse;
-      pulseHistory = append(pulseHistory, frame);
+      pulseHistory = append(pulseHistory, FRAME);
       slots = shorten(slots);
     }
 

@@ -3,38 +3,37 @@ import processing.opengl.*;
 import processing.video.*;
 import promidi.*;
 
-////////////
-// CONFIG //
-////////////
-
-final static String PULSE_FILE = "pulses.musicvis.txt";
-final static String MOVIE_FILE = "musicvis.avi";
-final static boolean READ = false; // read saved pulses
-final static boolean WRITE = false; // save pulses to a file
-
-// Create a video; you must have a previously recorded PULSE_FILE.
-final static boolean RECORD = false;
-
-// Run the app once to get a list of available devices on the console.
-int MIDI_DEVICE = 0;
-
 // Screen size
-final static int WIDTH  = 1280;
-final static int HEIGHT = 720;
+int WIDTH  = 1280;
+int HEIGHT = 720;
 
-////////////////
-// END CONFIG //
-////////////////
-
+// Shortcuts
 float wCenter;
 float hCenter;
-int frame = 0;
 
+// Menu
+int selection = 0;
+PFont font;
+
+// Enviornment settings
+int FRAME = 0;
+int MIDI_DEVICE = 0;
+int MIDI_CHANNEL = 0;
+boolean RUNNING = false;
+boolean START_RUNNING = false;
+boolean DEBUG = false;
+boolean RECORD = false;
+
+// Object declarations
 MovieMaker mm;
 MidiIO midiIO;
 Pulser pulser;
 
 void setup() {
+  // Don't allow window sizes bigger than the screen.
+  if (WIDTH > screen.width) WIDTH = screen.width;
+  if (HEIGHT > screen.height) HEIGHT = screen.height;
+
   size(WIDTH, HEIGHT, OPENGL);
   hint(ENABLE_OPENGL_4X_SMOOTH);
   frameRate(30);
@@ -44,38 +43,120 @@ void setup() {
   wCenter = (width/2);
   hCenter = (height/2);
 
-  if (WRITE || !READ) {
+  midiIO = MidiIO.getInstance(this);
+
+  font = loadFont("Gentium-48.vlw");
+  textFont(font);
+  noStroke();
+}
+
+void postSetup() {
+  if (RUNNING) return;
+  if (!RECORD) {
     println("Creating new pulse sequence.");
     pulser = new Pulser();
+    midiIO.openInput(MIDI_DEVICE, MIDI_CHANNEL);
   } else {
-    println("Loading pulse sequence \""+PULSE_FILE+"\".");
-    int[] timeline = stringArrayToIntArray(loadStrings(PULSE_FILE));
-    pulser = new Pulser(timeline);
-  }
+    String pulseFile = selectInput("Select a MusicVis session to load");
+    println("Loading session \""+pulseFile+"\".");
+    int[] timeline = stringArrayToIntArray(loadStrings(pulseFile));
 
-  // Create MovieMaker object with size, filename,
-  // compression codec and quality, framerate
-  if (RECORD) {
-    mm = new MovieMaker(this, width, height, MOVIE_FILE,
+    println("Creating Pulser");
+    pulser = new Pulser(timeline);
+
+    println("Creating MovieMaker object");
+    String videoFile = selectOutput("Save the Video");
+    mm = new MovieMaker(this, width, height, videoFile + ".avi",
         30, MovieMaker.MOTION_JPEG_A, MovieMaker.BEST);
   }
 
-  midiIO = MidiIO.getInstance(this);
-  midiIO.printInputDevices();
-  midiIO.openInput(MIDI_DEVICE,0);
+  println("Done postSetup()");
+  RUNNING = true;
+}
 
-  noStroke();
+void keyPressed() {
+  if (RUNNING) {
+    switch(key) {
+      case 'd':
+        DEBUG = !DEBUG;
+        break;
+      case ' ':
+        if (!RECORD) pulser.pulse(127);
+        break;
+    }
+  }
+  else { // menu
+    int value = 0;
+
+    switch(keyCode) {
+      case DOWN:
+        if (selection < 3) selection++; else selection = 0;
+        break;
+      case UP:
+        if (selection > 0) selection--; else selection = 3;
+        break;
+      case LEFT:
+        value |= -1;
+      case RIGHT:
+        value |= 1;
+      case RETURN:
+      case ENTER:
+      case ' ':
+        actOn(selection, value);
+        break;
+    }
+  }
+}
+
+void actOn(int id, int value) {
+  if (RUNNING) return;
+  switch(id) {
+    case 0: RECORD = !RECORD; break;
+    case 1:
+      if (MIDI_DEVICE + value >= 0 &&
+          MIDI_DEVICE + value < midiIO.numberOfInputDevices())
+        MIDI_DEVICE += value;
+      break;
+    case 2: if (MIDI_CHANNEL + value >= 0) MIDI_CHANNEL += value; break;
+    case 3: START_RUNNING = true; break;
+  }
 }
 
 void draw() {
   background(0);
-  setup_gl();
 
-  translate(wCenter, hCenter);
-  pulser.run();
+  if (START_RUNNING) {
+    postSetup();
+  }
 
-  if (RECORD) mm.addFrame(); // Add window's pixels to movie
-  frame++;
+  if (RUNNING) {
+    translate(wCenter, hCenter);
+    setup_gl();
+    pulser.run();
+    if (RECORD) mm.addFrame(); // Add window's pixels to movie
+    FRAME++;
+    translate(-wCenter, -hCenter);
+
+    if (DEBUG) {
+      text("Frame " + str(FRAME) + " - " + str(round(frameRate)) + " FPS", 20, 50);
+    }
+  }
+  else { // menu
+    String[] message = {
+      (RECORD) ? "Create Video from Session" : "Record Session",
+      midiIO.getInputDeviceName(MIDI_DEVICE),
+      "Midi Channel " + str(MIDI_CHANNEL),
+      "Begin",
+    };
+
+    int lineHeight = 60;
+    int messageHeight = ((message.length+1)*lineHeight)/2;
+
+    for (int i=0;i<message.length;i++) {
+      if (i == selection) fill(255); else fill(120);
+      text(message[i], 50, ((i+1)*lineHeight) + (hCenter - messageHeight));
+    }
+  }
 }
 
 // Fancy OpenGL effects.
@@ -103,17 +184,22 @@ void setup_gl() {
 
 // Clean up.
 void stop() {
-  if (RECORD) {
-    mm.finish();
+  if (RUNNING) {
+    if (RECORD) {
+      mm.finish();
+    }
+    else {
+      // Convert pulse history to String[] from int[]
+      String[] historyStrings = intArrayToStringArray(pulser.pulseHistory);
+
+      String pulseFile = selectOutput("Save your MusicVis session");
+
+      if (pulseFile != null) {
+        saveStrings(pulseFile, historyStrings);
+      }
+    }
   }
 
-  // Convert pulse history to String[] from int[]
-  String[] historyStrings = intArrayToStringArray(pulser.pulseHistory);
-
-  if (WRITE) {
-    saveStrings(PULSE_FILE, historyStrings);
-    println(pulser.pulseHistory);
-  }
   super.stop();
 }
 
