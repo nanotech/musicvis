@@ -55,8 +55,12 @@ void postSetup() {
   if (!RECORD) {
     println("Creating new pulse sequence.");
     pulser = new Pulser();
-    midiIO.openInput(MIDI_DEVICE, MIDI_CHANNEL);
-  } else {
+
+    if (isValidMidiInputDeviceId(MIDI_DEVICE)) {
+      midiIO.openInput(MIDI_DEVICE, MIDI_CHANNEL);
+    }
+  }
+  else {
     String pulseFile = selectInput("Select a MusicVis session to load");
     println("Loading session \""+pulseFile+"\".");
     int[] timeline = stringArrayToIntArray(loadStrings(pulseFile));
@@ -144,7 +148,7 @@ void draw() {
   else { // menu
     String[] message = {
       (RECORD) ? "Create Video from Session" : "Record Session",
-      midiIO.getInputDeviceName(MIDI_DEVICE),
+      safeGetInputDeviceName(MIDI_DEVICE),
       "Midi Channel " + str(MIDI_CHANNEL),
       "Begin",
     };
@@ -255,4 +259,15 @@ int[] stringArrayToIntArray(String[] strings) {
   }
 
   return ints;
+}
+
+boolean isValidMidiInputDeviceId(int id) {
+  return id >= 0 && id < midiIO.numberOfInputDevices();
+}
+
+String safeGetInputDeviceName(int id) {
+  if (isValidMidiInputDeviceId(id))
+    return midiIO.getInputDeviceName(id);
+  else
+    return "(No Midi devices found!)";
 }
